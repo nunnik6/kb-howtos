@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Strength Tester</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 40px;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      color: #333;
+    }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 1em;
+      margin: 10px 0;
+    }
+    .result {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .good { color: green; }
+    .medium { color: orange; }
+    .weak { color: red; }
+    ul.rules {
+      font-size: 0.9em;
+      padding-left: 20px;
+      list-style: none;
+    }
+    ul.rules li {
+      margin: 5px 0;
+      display: flex;
+      align-items: center;
+    }
+    .fulfilled::before {
+      content: "\2714";
+      color: green;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .unfulfilled::before {
+      content: "\2716";
+      color: red;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .password-wrapper {
+      position: relative;
+    }
+    .toggle-container {
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9em;
+    }
+    .toggle-container button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2em;
+    }
+    .button-row {
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-start;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Password Strength Checker</h1>
+  <label for="firstName">First Name (for check):</label>
+  <input type="text" id="firstName" placeholder="Enter your first name">
+  <label for="lastName">Last Name (for check):</label>
+  <input type="text" id="lastName" placeholder="Enter your last name">
+  <label for="password">Enter a password to test:</label>
+  <div class="password-wrapper">
+    <input type="password" id="password" placeholder="Enter your password...">
+  </div>
+  <div class="result" id="strength"></div>
+  <div class="toggle-container">
+    <button onclick="togglePasswordVisibility()" id="togglePasswordBtn" title="Show password">👁️</button>
+    <label for="togglePasswordBtn">See password</label>
+  </div>
+  <p><strong>Requirements:</strong></p>
+  <ul class="rules">
+    <li id="rule-length">At least 15 characters</li>
+    <li id="rule-case">Must contain uppercase and lowercase letters</li>
+    <li id="rule-numberspecial">Must include at least one number and one special character</li>
+    <li id="rule-company">Must not include company words: "Lely", "Astronaut"</li>
+    <li id="rule-name">Must not include user's first or last name</li>
+    <li id="rule-pattern">Must not include common keyboard patterns (e.g., "1234", "qwerty")</li>
+  </ul>
+  <div class="button-row">
+    <button onclick="resetForm()">Reset</button>
+  </div>
+
+  <script>
+    const passwordInput = document.getElementById("password");
+    const firstNameInput = document.getElementById("firstName");
+    const lastNameInput = document.getElementById("lastName");
+    const strengthDisplay = document.getElementById("strength");
+    const toggleBtn = document.getElementById("togglePasswordBtn");
+
+    const ruleLength = document.getElementById("rule-length");
+    const ruleCase = document.getElementById("rule-case");
+    const ruleNumberSpecial = document.getElementById("rule-numberspecial");
+    const ruleCompany = document.getElementById("rule-company");
+    const ruleName = document.getElementById("rule-name");
+    const rulePattern = document.getElementById("rule-pattern");
+
+    passwordInput.addEventListener("input", evaluate);
+    firstNameInput.addEventListener("input", evaluate);
+    lastNameInput.addEventListener("input", evaluate);
+
+    function togglePasswordVisibility() {
+      const isText = passwordInput.type === "text";
+      passwordInput.type = isText ? "password" : "text";
+    }
+
+    function evaluate() {
+      const password = passwordInput.value;
+      const firstName = firstNameInput.value.trim().toLowerCase();
+      const lastName = lastNameInput.value.trim().toLowerCase();
+      const result = checkStrength(password, firstName, lastName);
+      strengthDisplay.textContent = result.text;
+      strengthDisplay.className = `result ${result.class}`;
+    }
+
+    function checkStrength(pw, first, last) {
+      const lowerPw = pw.toLowerCase();
+
+      const longEnough = pw.length >= 15;
+      const hasUpper = /[A-Z]/.test(pw);
+      const hasLower = /[a-z]/.test(pw);
+      const hasNumber = /[0-9]/.test(pw);
+      const hasSpecial = /[^A-Za-z0-9]/.test(pw);
+      const noCompanyWords = !/lely|astronaut/i.test(pw);
+      const noNames = !(first && lowerPw.includes(first)) && !(last && lowerPw.includes(last));
+      const noPatterns = ![/1234/, /abcd/, /qwerty/, /password/, /1111/, /0000/].some(p => p.test(lowerPw));
+
+      ruleLength.className = longEnough ? "fulfilled" : "unfulfilled";
+      ruleCase.className = (hasUpper && hasLower) ? "fulfilled" : "unfulfilled";
+      ruleNumberSpecial.className = (hasNumber && hasSpecial) ? "fulfilled" : "unfulfilled";
+      ruleCompany.className = noCompanyWords ? "fulfilled" : "unfulfilled";
+      ruleName.className = noNames ? "fulfilled" : "unfulfilled";
+      rulePattern.className = noPatterns ? "fulfilled" : "unfulfilled";
+
+      const allPassed = longEnough && hasUpper && hasLower && hasNumber && hasSpecial && noCompanyWords && noNames && noPatterns;
+
+      if (allPassed) {
+        return { text: "This password will work", class: "good" };
+      } else {
+        return { text: "Password does not meet all requirements", class: "weak" };
+      }
+    }
+
+    function resetForm() {
+      passwordInput.value = "";
+      firstNameInput.value = "";
+      lastNameInput.value = "";
+      strengthDisplay.textContent = "";
+
+      ruleLength.className = "unfulfilled";
+      ruleCase.className = "unfulfilled";
+      ruleNumberSpecial.className = "unfulfilled";
+      ruleCompany.className = "unfulfilled";
+      ruleName.className = "unfulfilled";
+      rulePattern.className = "unfulfilled";
+    }
+  </script>
+</body>
+</html>
+
